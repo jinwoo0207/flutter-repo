@@ -11,12 +11,15 @@ class MyApp extends StatelessWidget {
   MyApp({super.key});
 
   void changeCheck() {
+      print("체크박스 클릭 전 : $enabled");
     if (enabled) {
       stateText = "disabled";
+      enabled = false;
     } else {
       stateText = "enable";
       enabled = true;
     }
+    print("체크박스 클릭 후 : $enabled");
   }
 
   @override
