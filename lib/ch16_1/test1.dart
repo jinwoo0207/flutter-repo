@@ -5,7 +5,7 @@ void main() {
 
 Future induk() async {
   var version = await lookupVersion();
-  print(version)
+  print(version);
 }
 
 int lookupVersion() {
