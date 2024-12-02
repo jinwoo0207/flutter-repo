@@ -9,6 +9,8 @@
 .history
 .svn/
 migrate_working_dir/
+
+# firebase 설정 파일
 firebase_options.dart
 firebase.json
 google-services.json
