@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "223572198619",
+    "project_id": "flutter-induk-202316003",
+    "storage_bucket": "flutter-induk-202316003.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:223572198619:android:e55384838935c1896db8fe",
+        "android_client_info": {
+          "package_name": "com.example.gittest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJeCfcWPn6_0AHXFz2lFT1f19l4MYS9oE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
