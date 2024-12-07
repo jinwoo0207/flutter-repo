@@ -1,14 +1,144 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:convert'; // json 관련
-import 'package:http/http.dart' as http; // http 요청 관련
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:gittest/firebase_options.dart';
 
-void main() {
-  runApp(MaterialApp(
-    title: '맛집 추천 앱',
-    theme: ThemeData(primarySwatch: Colors.orange),
-    home: RegionSelectionScreen(),
-  ));
+void showToast(String msg) {
+  Fluttertoast.showToast(
+    msg: msg,
+    toastLength: Toast.LENGTH_SHORT,
+    gravity: ToastGravity.CENTER,
+    timeInSecForIosWeb: 1,
+    backgroundColor: Colors.red,
+    textColor: Colors.white,
+    fontSize: 16.0,
+  );
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();  // 위젯 바인딩을 보장
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,  // Firebase 초기화
+  );
+  runApp(AuthApp());
+}
+
+class AuthApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '로그인 & 회원가입',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: AuthWidget(),
+    );
+  }
+}
+
+class AuthWidget extends StatefulWidget {
+  @override
+  AuthWidgetState createState() => AuthWidgetState();
+}
+
+class AuthWidgetState extends State<AuthWidget> {
+  final _formKey = GlobalKey<FormState>();
+  late String email;
+  late String password;
+  bool isSignIn = true;
+
+  Future<void> signIn() async {
+    try {
+      await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password)
+          .then((value) {
+        if (value.user!.emailVerified) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => RegionSelectionScreen()),
+          );
+        } else {
+          showToast('이메일 인증이 필요합니다.');
+        }
+      });
+    } on FirebaseAuthException catch (error) {
+      showToast('오류: ${error.message}');
+    }
+  }
+
+  Future<void> signUp() async {
+    try {
+      await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password)
+          .then((value) {
+        if (value.user != null) {
+          FirebaseAuth.instance.currentUser?.sendEmailVerification();
+          showToast('회원가입 성공! 이메일 인증 후 로그인하세요.');
+        }
+      });
+    } on FirebaseAuthException catch (error) {
+      showToast('오류: ${error.message}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(isSignIn ? '로그인' : '회원가입')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                decoration: InputDecoration(labelText: '이메일'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '이메일을 입력하세요';
+                  }
+                  return null;
+                },
+                onSaved: (value) => email = value!,
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: '비밀번호'),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '비밀번호를 입력하세요';
+                  }
+                  return null;
+                },
+                onSaved: (value) => password = value!,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    _formKey.currentState?.save();
+                    isSignIn ? signIn() : signUp();
+                  }
+                },
+                child: Text(isSignIn ? '로그인' : '회원가입'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    isSignIn = !isSignIn;
+                  });
+                },
+                child: Text(isSignIn ? '회원가입으로 전환' : '로그인으로 전환'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class RegionSelectionScreen extends StatefulWidget {
@@ -52,7 +182,7 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
               padding: EdgeInsets.all(10),
               itemCount: regionIcons.keys.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3, // 한 줄에 3개씩 표시하도록 수정
+                crossAxisCount: 3, // 한 줄에 3개씩 표시
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
                 childAspectRatio: 1.0,
@@ -72,7 +202,8 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CategorySelectionScreen(region: selectedRegion),
+                        builder: (context) =>
+                            CategorySelectionScreen(region: selectedRegion),
                       ),
                     );
                   },
@@ -98,7 +229,8 @@ class CategorySelectionScreen extends StatefulWidget {
   CategorySelectionScreen({required this.region});
 
   @override
-  _CategorySelectionScreenState createState() => _CategorySelectionScreenState();
+  _CategorySelectionScreenState createState() =>
+      _CategorySelectionScreenState();
 }
 
 class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
@@ -121,63 +253,56 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('검색할 맛집 카테고리 선택')),
-      body: SingleChildScrollView(  // 화면 크기에 맞게 스크롤을 추가
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('지역: ${widget.region}', style: TextStyle(fontSize: 16)),
-              SizedBox(height: 20),
-              Text(
-                '카테고리를 선택해주세요',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              GridView.builder(
-                padding: EdgeInsets.all(10),
-                itemCount: categoryIcons.keys.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4, // 4개씩 표시
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                ),
-                itemBuilder: (context, index) {
-                  String category = categoryIcons.keys.elementAt(index);
-                  return ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.all(10),
-                      backgroundColor: Colors.orangeAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        selectedCategory = category;
-                      });
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RestaurantSearchScreen(
-                            region: widget.region,
-                            category: selectedCategory,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(categoryIcons[category], size: 30),
-                        Text(category, style: TextStyle(fontSize: 14)),
-                      ],
-                    ),
-                  );
-                },
-                shrinkWrap: true,  // 그리드뷰가 부모 위젯의 공간에 맞게 크기를 조정
-                physics: NeverScrollableScrollPhysics(), // 내부 스크롤 방지
-              ),
-            ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text('지역: ${widget.region}', style: TextStyle(fontSize: 16)),
           ),
-        ),
+          Expanded(
+            child: GridView.builder(
+              padding: EdgeInsets.all(10),
+              itemCount: categoryIcons.keys.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4, // 한 줄에 4개씩 표시
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+              ),
+              itemBuilder: (context, index) {
+                String category = categoryIcons.keys.elementAt(index);
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.all(10),
+                    backgroundColor: Colors.orangeAccent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      selectedCategory = category;
+                    });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RestaurantSearchScreen(
+                          region: widget.region,
+                          category: selectedCategory,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(categoryIcons[category], size: 30),
+                      Text(category, style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -193,7 +318,8 @@ class RestaurantSearchScreen extends StatefulWidget {
   });
 
   @override
-  _RestaurantSearchScreenState createState() => _RestaurantSearchScreenState();
+  _RestaurantSearchScreenState createState() =>
+      _RestaurantSearchScreenState();
 }
 
 class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
@@ -201,7 +327,6 @@ class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
   List<dynamic> restaurants = [];
   bool isLoading = false;
 
-  // 지역에 대한 위도, 경도 값
   final Map<String, Map<String, double>> regionCoordinates = {
     '강북구': {'latitude': 37.6392, 'longitude': 127.0254},
     '강남구': {'latitude': 37.5172, 'longitude': 127.0473},
@@ -214,7 +339,7 @@ class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
     '용산구': {'latitude': 37.5344, 'longitude': 126.9779},
     '마포구': {'latitude': 37.5665, 'longitude': 126.9017},
     '광진구': {'latitude': 37.5375, 'longitude': 127.0477},
-    '부산': {'latitude': 35.1796, 'longitude': 129.0756}, // 추가된 지역
+    '부산': {'latitude': 35.1796, 'longitude': 129.0756},
   };
 
   Future<void> fetchRestaurants() async {
@@ -222,22 +347,18 @@ class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
       isLoading = true;
     });
 
-    // 선택된 지역의 위도, 경도 값 가져오기
     final coordinates = regionCoordinates[widget.region];
     if (coordinates == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('지역 정보를 찾을 수 없습니다.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('지역 정보를 찾을 수 없습니다.')));
       return;
     }
 
     final lat = coordinates['latitude'];
     final lon = coordinates['longitude'];
 
-    // 카테고리명 가져오기
-    final category = widget.category;
-
-    // API 호출 URL
     final url =
-        'https://dapi.kakao.com/v2/local/search/keyword.json?query=${Uri.encodeComponent(widget.region)}%20${Uri.encodeComponent(category)}&x=$lon&y=$lat&radius=2000';
+        'https://dapi.kakao.com/v2/local/search/keyword.json?query=${Uri.encodeComponent(widget.region)}%20${Uri.encodeComponent(widget.category)}&x=$lon&y=$lat&radius=2000';
 
     final response = await http.get(Uri.parse(url), headers: {
       'Authorization': 'KakaoAK $apiKey',
@@ -252,7 +373,8 @@ class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('데이터를 불러오지 못했습니다.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('데이터를 불러오는데 실패했습니다.')));
     }
   }
 
@@ -268,8 +390,6 @@ class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
       appBar: AppBar(title: Text('${widget.region} - ${widget.category} 맛집')),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
-          : restaurants.isEmpty
-          ? Center(child: Text('검색된 맛집이 없습니다.'))
           : ListView.builder(
         itemCount: restaurants.length,
         itemBuilder: (context, index) {
@@ -278,7 +398,21 @@ class _RestaurantSearchScreenState extends State<RestaurantSearchScreen> {
             title: Text(restaurant['place_name']),
             subtitle: Text(restaurant['address_name']),
             onTap: () {
-              // 맛집 상세 페이지로 이동할 수 있도록 추가 기능 구현 가능
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(restaurant['place_name']),
+                  content: Text(restaurant['address_name']),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('닫기'),
+                    ),
+                  ],
+                ),
+              );
             },
           );
         },
