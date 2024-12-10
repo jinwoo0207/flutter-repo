@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -21,9 +20,9 @@ void showToast(String msg) {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();  // 위젯 바인딩을 보장
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,  // Firebase 초기화
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(AuthApp());
 }
@@ -87,51 +86,98 @@ class AuthWidgetState extends State<AuthWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(isSignIn ? '로그인' : '회원가입')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        title: Text(isSignIn ? '로그인' : '회원가입'),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
           child: Column(
             children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: '이메일'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '이메일을 입력하세요';
-                  }
-                  return null;
-                },
-                onSaved: (value) => email = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: '비밀번호'),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '비밀번호를 입력하세요';
-                  }
-                  return null;
-                },
-                onSaved: (value) => password = value!,
+              Image.asset(
+                'images/induk.png',
+                height: 150,
+                width: 500,
+                fit: BoxFit.contain,
               ),
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState?.validate() ?? false) {
-                    _formKey.currentState?.save();
-                    isSignIn ? signIn() : signUp();
-                  }
-                },
-                child: Text(isSignIn ? '로그인' : '회원가입'),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    isSignIn = !isSignIn;
-                  });
-                },
-                child: Text(isSignIn ? '회원가입으로 전환' : '로그인으로 전환'),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: '이메일',
+                        prefixIcon: Icon(Icons.email, color: Colors.blueAccent),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '이메일을 입력하세요';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) => email = value!,
+                    ),
+                    SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: '비밀번호',
+                        prefixIcon:
+                        Icon(Icons.lock, color: Colors.blueAccent),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '비밀번호를 입력하세요';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) => password = value!,
+                    ),
+                    SizedBox(height: 30),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        padding: EdgeInsets.symmetric(
+                            vertical: 15, horizontal: 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (_formKey.currentState?.validate() ?? false) {
+                          _formKey.currentState?.save();
+                          isSignIn ? signIn() : signUp();
+                        }
+                      },
+                      child: Text(
+                        isSignIn ? '로그인' : '회원가입',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          isSignIn = !isSignIn;
+                        });
+                      },
+                      child: Text(
+                        isSignIn ? '회원가입으로 전환' : '로그인으로 전환',
+                        style: TextStyle(color: Colors.blueAccent),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -234,7 +280,7 @@ class CategorySelectionScreen extends StatefulWidget {
 }
 
 class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
-  String selectedCategory = '';
+  String selectedCategory = ''; // 초기에는 선택된 카테고리가 없음
 
   final Map<String, IconData> categoryIcons = {
     '한식': FontAwesomeIcons.utensils,
@@ -257,7 +303,16 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text('지역: ${widget.region}', style: TextStyle(fontSize: 16)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('지역: ${widget.region}', style: TextStyle(fontSize: 16)),
+                SizedBox(height: 8), // 약간의 간격 추가
+                // 선택된 카테고리 표시
+                if (selectedCategory.isNotEmpty)
+                  Text('선택한 카테고리: $selectedCategory', style: TextStyle(fontSize: 16)),
+              ],
+            ),
           ),
           Expanded(
             child: GridView.builder(
@@ -278,18 +333,10 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
+                    // 누를 때 selectedCategory 업데이트
                     setState(() {
                       selectedCategory = category;
                     });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RestaurantSearchScreen(
-                          region: widget.region,
-                          category: selectedCategory,
-                        ),
-                      ),
-                    );
                   },
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -300,6 +347,31 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                   ),
                 );
               },
+            ),
+          ),
+          // 검색 버튼 추가
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: () {
+                // 버튼을 눌렀을 때만 RestaurantSearchScreen으로 이동
+                if (selectedCategory.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RestaurantSearchScreen(
+                        region: widget.region,
+                        category: selectedCategory,
+                      ),
+                    ),
+                  );
+                } else {
+                  // 카테고리가 선택되지 않았으면 메시지 표시
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('카테고리를 선택해주세요.')));
+                }
+              },
+              child: Text('검색'),
             ),
           ),
         ],
